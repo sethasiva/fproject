@@ -1,177 +1,378 @@
-
-// =====================
-// TASK DATA
-// =====================
+const STORAGE_KEY = 'taskflow_tasks';
 let tasks = [];
-let filter = "all";
-
-
-// LOAD DATA
-window.onload = () => {
-  const saved = localStorage.getItem("tasks");
-  if (saved) {
-    tasks = JSON.parse(saved);
+let currentFilter = 'all';
+const taskInput = document.getElementById('taskInput');
+const addButton = document.getElementById('addTaskBtn');
+const taskListElement = document.getElementById('taskList');
+const filterButtons = document.querySelectorAll('.filter-tab');
+const statsDisplay = document.getElementById('statsDisplay');
+const taskCountSpan = document.getElementById('taskCount');
+function saveTasksToStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+function loadTasksFromStorage() {
+    const storedTasks = localStorage.getItem(STORAGE_KEY);
+    if (storedTasks) {
+        try {
+            const parsedTasks = JSON.parse(storedTasks);
+            if (Array.isArray(parsedTasks) && parsedTasks.length > 0) {
+                tasks = parsedTasks;
+                
+                tasks.forEach(task => {
+                    if (!task.createdAt) {
+                        task.createdAt = new Date().toISOString();
+                    }
+                });
+                saveTasksToStorage();
+            } else {
+              
+                loadSampleTasks();
+            }
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+            loadSampleTasks();
+        }
+    } else {
+        loadSampleTasks();
+    }
   }
-  renderTasks();
-};
-
-
-// SAVE DATA
-function save() {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
+function loadSampleTasks() {
+    tasks = [
+        {
+            id: Date.now() + 1,
+            text: 'Welcome to TaskFlow! Click the circle to complete me',
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: Date.now() + 2,
+            text: 'Try adding your own tasks',
+            status: 'pending',
+            createdAt: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+            id: Date.now() + 3,
+            text: 'Use filters to organize your view',
+            status: 'completed',
+            createdAt: new Date(Date.now() - 86400000).toISOString()
+        }
+    ];
+    saveTasksToStorage();
+}
+function getRelativeTime(isoDate) {
+    const taskDate = new Date(isoDate);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (taskDate.toDateString() === today.toDateString()) {
+        return 'Today';
+    } else if (taskDate.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    } else {
+        const daysDiff = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff < 7) {
+            return `${daysDiff} days ago`;
+        }
+        return taskDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
 }
 
 
-// =====================
-// ADD TASK
-// =====================
+function getPriority(taskText) {
+    const text = taskText.toLowerCase();
+    if (text.includes('urgent') || text.includes('important') || text.includes('deadline') || text.includes('asap')) {
+        return { level: 'high', label: '🔥 High Priority' };
+    } else if (text.includes('review') || text.includes('meeting') || text.includes('call')) {
+        return { level: 'medium', label: '⭐ Medium Priority' };
+    } else {
+        return { level: 'normal', label: '📌 Normal' };
+    }
+}
+
+
+function updateStatistics() {
+    const totalTasks = tasks.length;
+    const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+    const completedTasks = tasks.filter(task => task.status === 'completed').length;
+    
+    let statsText = '';
+    if (currentFilter === 'all') {
+        statsText = `${totalTasks} total · ${pendingTasks} pending · ${completedTasks} done`;
+        taskCountSpan.textContent = totalTasks;
+    } else if (currentFilter === 'pending') {
+        statsText = `${pendingTasks} pending task${pendingTasks !== 1 ? 's' : ''}`;
+        taskCountSpan.textContent = pendingTasks;
+    } else {
+        statsText = `${completedTasks} completed task${completedTasks !== 1 ? 's' : ''}`;
+        taskCountSpan.textContent = completedTasks;
+    }
+    
+    statsDisplay.innerHTML = `<span id="taskCount">${taskCountSpan.textContent}</span> ${statsText.replace(taskCountSpan.textContent, '').trim()}`;
+}
+
+
+function showNotification(message, isError = false) {
+   
+    const existingNotification = document.querySelector('.task-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = 'task-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${isError ? '#e03131' : '#10b981'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideUp 0.3s ease;
+    `;
+    
+  
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 2500);
+}
 function addTask() {
-  const input = document.getElementById("taskInput");
-  const text = input.value.trim();
-
-  if (text === "") return;
-
-  tasks.push({
-    id: Date.now(),
-    text: text,
-    completed: false
-  });
-
-  input.value = "";
-  save();
-  renderTasks();
-}
-
-
-// =====================
-// TOGGLE DONE / UNDO
-// =====================
-function toggleTask(id) {
-  tasks = tasks.map(task => {
-    if (task.id === id) {
-      task.completed = !task.completed;
+    const taskText = taskInput.value.trim();
+    
+    if (!taskText) {
+        showNotification('Please enter a task description', true);
+        return;
     }
-    return task;
-  });
-
-  save();
-  renderTasks();
-}
-
-
-// =====================
-// DELETE TASK
-// =====================
-function deleteTask(id) {
-  tasks = tasks.filter(task => task.id !== id);
-  save();
-  renderTasks();
-}
-
-
-// =====================
-// EDIT TASK
-// =====================
-function editTask(task) {
-  const newText = prompt("Edit task:", task.text);
-
-  if (newText) {
-    task.text = newText;
-    save();
+    
+    const newTask = {
+        id: Date.now(),
+        text: taskText,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+    };
+    
+    tasks.push(newTask);
+    saveTasksToStorage();
+    taskInput.value = '';
+    
+  
+    if (currentFilter !== 'all') {
+        currentFilter = 'all';
+        updateActiveFilterButton();
+    }
+    
     renderTasks();
-  }
+    showNotification(`✓ "${taskText}" added successfully`);
+    
+  
+    setTimeout(() => {
+        const newTaskElement = document.querySelector(`[data-task-id="${newTask.id}"]`);
+        if (newTaskElement) {
+            newTaskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
+}
+
+function toggleTaskStatus(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+        const newStatus = task.status === 'pending' ? 'completed' : 'pending';
+        task.status = newStatus;
+        saveTasksToStorage();
+        renderTasks();
+        
+        const message = newStatus === 'completed' ? 'Task completed! Great job! 🎉' : 'Task marked as pending 🔄';
+        showNotification(message);
+    }
+}
+
+function deleteTask(taskId) {
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) return;
+    
+    tasks = tasks.filter(t => t.id !== taskId);
+    saveTasksToStorage();
+    renderTasks();
+    showNotification(`🗑 Removed "${taskToDelete.text}"`);
 }
 
 
-// =====================
-// FILTER + ACTIVE BUTTON
-// =====================
-function setFilter(type) {
-  filter = type;
+function setFilter(filterType) {
+    currentFilter = filterType;
+    updateActiveFilterButton();
+    renderTasks();
+    updateStatistics();
+}
 
-  document.querySelectorAll(".filters button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  const activeBtn = document.querySelector(`[data-filter="${type}"]`);
-  if (activeBtn) activeBtn.classList.add("active");
-
-  renderTasks();
+function updateActiveFilterButton() {
+    filterButtons.forEach(btn => {
+        const filterValue = btn.getAttribute('data-filter');
+        if (filterValue === currentFilter) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 }
 
 
-// =====================
-// RENDER TASKS
-// =====================
+function getFilteredTasks() {
+    if (currentFilter === 'pending') {
+        return tasks.filter(task => task.status === 'pending');
+    } else if (currentFilter === 'completed') {
+        return tasks.filter(task => task.status === 'completed');
+    }
+    return tasks;
+}
+
+
+
 function renderTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
-
-  let filtered = tasks;
-
-  if (filter === "pending") {
-    filtered = tasks.filter(t => !t.completed);
-  }
-
-  if (filter === "completed") {
-    filtered = tasks.filter(t => t.completed);
-  }
-
-  filtered.forEach(task => {
-
-    const li = document.createElement("li");
-
-    if (task.completed) {
-      li.classList.add("completed");
+    const filteredTasks = getFilteredTasks();
+    
+    if (filteredTasks.length === 0) {
+       
+        let emptyMessage = '';
+        if (currentFilter === 'pending') {
+            emptyMessage = `
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <p>No pending tasks!</p>
+                    <small>You're all caught up 🎉</small>
+                </div>
+            `;
+        } else if (currentFilter === 'completed') {
+            emptyMessage = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>No completed tasks yet</p>
+                    <small>Complete some tasks to see them here</small>
+                </div>
+            `;
+        } else {
+            emptyMessage = `
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <p>Your task list is empty</p>
+                    <small>Add a task using the input above</small>
+                </div>
+            `;
+        }
+        taskListElement.innerHTML = emptyMessage;
+        updateStatistics();
+        return;
     }
-
-    // TEXT
-    const span = document.createElement("span");
-    span.textContent = task.text;
-    span.onclick = () => toggleTask(task.id);
-
-    // ACTIONS
-    const actions = document.createElement("div");
-    actions.classList.add("actions");
-
-    // DONE (pending only)
-    if (!task.completed) {
-      const doneBtn = document.createElement("button");
-      doneBtn.textContent = "Done";
-      doneBtn.classList.add("done");
-      doneBtn.onclick = () => toggleTask(task.id);
-      actions.appendChild(doneBtn);
-    }
-
-    // UNDO (completed only)
-    if (task.completed) {
-      const undoBtn = document.createElement("button");
-      undoBtn.textContent = "Undo";
-      undoBtn.classList.add("undo");
-      undoBtn.onclick = () => toggleTask(task.id);
-      actions.appendChild(undoBtn);
-    }
-
-    // EDIT (only pending)
-    if (!task.completed) {
-      const editBtn = document.createElement("button");
-      editBtn.textContent = "Edit";
-      editBtn.classList.add("edit");
-      editBtn.onclick = () => editTask(task);
-      actions.appendChild(editBtn);
-    }
-
-    // DELETE (always)
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.classList.add("delete");
-    delBtn.onclick = () => deleteTask(task.id);
-
-    actions.appendChild(delBtn);
-
-    li.appendChild(span);
-    li.appendChild(actions);
-
-    list.appendChild(li);
-  });
+    
+ 
+    let tasksHTML = '';
+    filteredTasks.forEach(task => {
+        const isCompleted = task.status === 'completed';
+        const timeAgo = getRelativeTime(task.createdAt);
+        const priority = getPriority(task.text);
+        
+        tasksHTML += `
+            <li class="task-item ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
+                <div class="task-content" data-action="toggle" data-id="${task.id}">
+                    <span class="task-checkbox"></span>
+                    <div style="flex: 1;">
+                        <div class="task-text">${escapeHtml(task.text)}</div>
+                        <div class="task-meta">
+                            <span class="priority-tag ${priority.level}">${priority.label}</span>
+                            <span class="time-tag">🕒 ${timeAgo}</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="delete-btn" data-action="delete" data-id="${task.id}" aria-label="Delete task">
+                    🗑️
+                </button>
+            </li>
+        `;
+    });
+    
+    taskListElement.innerHTML = tasksHTML;
+    updateStatistics();
+    
+    
+    attachTaskEventListeners();
 }
+
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+function attachTaskEventListeners() {
+    const taskContents = document.querySelectorAll('[data-action="toggle"]');
+    taskContents.forEach(element => {
+        element.removeEventListener('click', handleToggleClick);
+        element.addEventListener('click', handleToggleClick);
+    });
+    const deleteButtons = document.querySelectorAll('[data-action="delete"]');
+    deleteButtons.forEach(button => {
+        button.removeEventListener('click', handleDeleteClick);
+        button.addEventListener('click', handleDeleteClick);
+    });
+}
+
+function handleToggleClick(e) {
+    e.stopPropagation();
+    const taskId = parseInt(this.getAttribute('data-id'));
+    toggleTaskStatus(taskId);
+}
+
+function handleDeleteClick(e) {
+    e.stopPropagation();
+    const taskId = parseInt(this.getAttribute('data-id'));
+    deleteTask(taskId);
+}
+
+function setupEventListeners() {
+    addButton.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTask();
+        }
+    });
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filterValue = btn.getAttribute('data-filter');
+            setFilter(filterValue);
+        });
+    });
+}
+function init() {
+    loadTasksFromStorage();
+    setupEventListeners();
+    renderTasks();
+}
+document.addEventListener('DOMContentLoaded', init);
