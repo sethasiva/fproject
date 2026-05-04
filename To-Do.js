@@ -82,11 +82,11 @@ function getRelativeTime(isoDate) {
 function getPriority(taskText) {
     const text = taskText.toLowerCase();
     if (text.includes('urgent') || text.includes('important') || text.includes('deadline') || text.includes('asap')) {
-        return { level: 'high', label: '🔥 High Priority' };
+        return { level: 'high', label: ' High Priority' };
     } else if (text.includes('review') || text.includes('meeting') || text.includes('call')) {
-        return { level: 'medium', label: '⭐ Medium Priority' };
+        return { level: 'medium', label: ' Medium Priority' };
     } else {
-        return { level: 'normal', label: '📌 Normal' };
+        return { level: 'normal', label: ' Normal' };
     }
 }
 
@@ -209,7 +209,7 @@ function toggleTaskStatus(taskId) {
         saveTasksToStorage();
         renderTasks();
         
-        const message = newStatus === 'completed' ? 'Task completed! Great job! 🎉' : 'Task marked as pending 🔄';
+        const message = newStatus === 'completed' ? 'Task completed! Great job! ' : 'Task marked as pending ';
         showNotification(message);
     }
 }
@@ -221,7 +221,7 @@ function deleteTask(taskId) {
     tasks = tasks.filter(t => t.id !== taskId);
     saveTasksToStorage();
     renderTasks();
-    showNotification(`🗑 Removed "${taskToDelete.text}"`);
+    showNotification(` Removed "${taskToDelete.text}"`);
 }
 
 
@@ -266,21 +266,14 @@ function renderTasks() {
                 <div class="empty-state">
                     <div class="empty-icon">✅</div>
                     <p>No pending tasks!</p>
-                    <small>You're all caught up 🎉</small>
+                    <small>You're all caught up </small>
                 </div>
             `;
-        } else if (currentFilter === 'completed') {
-            emptyMessage = `
-                <div class="empty-state">
-                    <div class="empty-icon">📭</div>
-                    <p>No completed tasks yet</p>
-                    <small>Complete some tasks to see them here</small>
-                </div>
-            `;
+        
         } else {
             emptyMessage = `
                 <div class="empty-state">
-                    <div class="empty-icon">📋</div>
+                <div class="empty-icon">📋</div>
                     <p>Your task list is empty</p>
                     <small>Add a task using the input above</small>
                 </div>
@@ -306,12 +299,12 @@ function renderTasks() {
                         <div class="task-text">${escapeHtml(task.text)}</div>
                         <div class="task-meta">
                             <span class="priority-tag ${priority.level}">${priority.label}</span>
-                            <span class="time-tag">🕒 ${timeAgo}</span>
+                            <span class="time-tag"> ${timeAgo}</span>
                         </div>
                     </div>
                 </div>
                 <button class="delete-btn" data-action="delete" data-id="${task.id}" aria-label="Delete task">
-                    🗑️
+                    🗑
                 </button>
             </li>
         `;
