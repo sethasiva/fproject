@@ -7,11 +7,8 @@ const taskListElement = document.getElementById('taskList');
 const filterButtons = document.querySelectorAll('.filter-tab');
 const statsDisplay = document.getElementById('statsDisplay');
 const taskCountSpan = document.getElementById('taskCount');
-<<<<<<< HEAD
-function saveTasksStorage() {
-=======
+
 function saveTasksToStorage() {
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 function loadTasksFromStorage() {
@@ -27,14 +24,9 @@ function loadTasksFromStorage() {
                         task.createdAt = new Date().toISOString();
                     }
                 });
-<<<<<<< HEAD
-                saveTasksStorage();
-            } else {
-=======
                 saveTasksToStorage();
             } else {
               
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
                 loadSampleTasks();
             }
         } catch (error) {
@@ -44,7 +36,6 @@ function loadTasksFromStorage() {
     } else {
         loadSampleTasks();
     }
-<<<<<<< HEAD
 }
 
 function loadSampleTasks() {
@@ -57,31 +48,6 @@ function loadSampleTasks() {
         }
     ];
     saveTasksStorage();
-=======
-  }
-function loadSampleTasks() {
-    tasks = [
-        {
-            id: Date.now() + 1,
-            text: 'Welcome to TaskFlow! Click the circle to complete me',
-            status: 'pending',
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: Date.now() + 2,
-            text: 'Try adding your own tasks',
-            status: 'pending',
-            createdAt: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-            id: Date.now() + 3,
-            text: 'Use filters to organize your view',
-            status: 'completed',
-            createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-    ];
-    saveTasksToStorage();
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
 }
 function getRelativeTime(isoDate) {
     const taskDate = new Date(isoDate);
@@ -204,11 +170,7 @@ function addTask() {
     };
     
     tasks.push(newTask);
-<<<<<<< HEAD
-    saveTasksStorage();
-=======
     saveTasksToStorage();
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
     taskInput.value = '';
     
   
@@ -234,11 +196,7 @@ function toggleTaskStatus(taskId) {
     if (task) {
         const newStatus = task.status === 'pending' ? 'completed' : 'pending';
         task.status = newStatus;
-<<<<<<< HEAD
-        saveTasksStorage();
-=======
         saveTasksToStorage();
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
         renderTasks();
         
         const message = newStatus === 'completed' ? 'Task completed! Great job! ' : 'Task marked as pending ';
@@ -251,11 +209,7 @@ function deleteTask(taskId) {
     if (!taskToDelete) return;
     
     tasks = tasks.filter(t => t.id !== taskId);
-<<<<<<< HEAD
-    saveTasksStorage();
-=======
     saveTasksToStorage();
->>>>>>> dbf87882ad52b98d906dc3f90f7fca1539a4ead9
     renderTasks();
     showNotification(` Removed "${taskToDelete.text}"`);
 }
