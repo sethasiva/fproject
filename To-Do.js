@@ -47,7 +47,7 @@ function loadSampleTasks() {
             createdAt: new Date().toISOString()
         }
     ];
-    saveTasksStorage();
+    saveTasksToStorage();
 }
 function getRelativeTime(isoDate) {
     const taskDate = new Date(isoDate);
